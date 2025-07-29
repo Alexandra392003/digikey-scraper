@@ -1,10 +1,18 @@
 from flask import Flask, request, jsonify
 from playwright.sync_api import sync_playwright
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
-@app.route('/get_price', methods=['POST'])
+@app.route("/", methods=["GET"])
+def home():
+    return "Serverul Flask funcționează!"
+
+@app.route("/get_price", methods=["POST"])
 def get_price():
+    logging.info(f"Request received: {request.data}")
     data = request.get_json()
     url = data.get("url") if data else None
 
@@ -18,7 +26,6 @@ def get_price():
         try:
             page.goto(url, timeout=30000)
             page.wait_for_timeout(4000)  # așteaptă JS-ul să încarce
-            # Selectorul pentru preț (poți adapta dacă se schimbă)
             price_locator = page.locator("td.MuiTableCell-alignRight span").first
             price = price_locator.text_content()
             browser.close()
@@ -28,6 +35,7 @@ def get_price():
                 return jsonify({"error": "Price not found"}), 404
         except Exception as e:
             browser.close()
+            logging.error(f"Error scraping price: {e}")
             return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
